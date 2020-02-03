@@ -7,10 +7,32 @@ import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Url
+import Url.Parser exposing ((</>), Parser, int, map, oneOf, s, string)
+
+
+
+-- Parsing Urls
 
 
 type Page
-    = InputPage
+    = Home
+    | Users
+    | Clients
+    | Login
+
+
+routeParser : Parser (Page -> a) a
+routeParser =
+    oneOf
+        [ map Home (s "home")
+        , map Users (s "users")
+        , map Clients (s "clients")
+        , map Login (s "login")
+        ]
+
+
+
+-- Model
 
 
 type Msg
@@ -20,12 +42,8 @@ type Msg
     | NavbarMsg Navbar.State
 
 
-
--- Model
-
-
 type alias Model =
-    { currentPage : Page
+    { currentPage : Maybe Page
     , navbarState : Navbar.State
     , navKey : Nav.Key
     , url : Url.Url
@@ -42,7 +60,7 @@ init flags url key =
         ( navbarState, navbarCmd ) =
             Navbar.initialState NavbarMsg
     in
-    ( { currentPage = InputPage
+    ( { currentPage = Just Home
       , navbarState = navbarState
       , navKey = key
       , url = url
@@ -81,7 +99,7 @@ update msg model =
                     ( model, Nav.load href )
 
         UrlChanged url ->
-            ( { model | url = url }, Cmd.none )
+            ( { model | currentPage = Url.Parser.parse routeParser url }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -91,8 +109,30 @@ update msg model =
 -- VIEW
 
 
+homePage : Model -> Html Msg
+homePage model =
+    div [] [ text "home" ]
+
+
+usersPage : Model -> Html Msg
+usersPage model =
+    div [] [ text "users" ]
+
+
 view : Model -> Browser.Document Msg
 view model =
+    let
+        content =
+            case model.currentPage of
+                Just Home ->
+                    homePage model
+
+                Just Users ->
+                    usersPage model
+
+                _ ->
+                    homePage model
+    in
     { title = "Identity Administration"
     , body =
         [ CDN.stylesheet
@@ -105,7 +145,7 @@ view model =
                 , Navbar.itemLink [ href "/clients" ] [ text "Clients" ]
                 ]
             |> Navbar.view model.navbarState
-        , text (Url.toString model.url)
+        , content
         ]
     }
 
