@@ -27,6 +27,8 @@ type Msg
 type alias Model =
     { currentPage : Page
     , navbarState : Navbar.State
+    , navKey : Nav.Key
+    , url : Url.Url
     }
 
 
@@ -42,6 +44,8 @@ init flags url key =
     in
     ( { currentPage = InputPage
       , navbarState = navbarState
+      , navKey = key
+      , url = url
       }
     , navbarCmd
     )
@@ -68,6 +72,17 @@ update msg model =
             , Cmd.none
             )
 
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.navKey (Url.toString url) )
+
+                Browser.External href ->
+                    ( model, Nav.load href )
+
+        UrlChanged url ->
+            ( { model | url = url }, Cmd.none )
+
         _ ->
             ( model, Cmd.none )
 
@@ -78,20 +93,19 @@ update msg model =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "URL Interceptor"
+    { title = "Identity Administration"
     , body =
         [ CDN.stylesheet
-
-        -- creates an inline style node with the Bootstrap CSS
         , Navbar.config
             NavbarMsg
             |> Navbar.withAnimation
-            |> Navbar.brand [ href "#" ] [ text "Brand" ]
+            |> Navbar.brand [ href "#" ] [ text "Itema" ]
             |> Navbar.items
-                [ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
-                , Navbar.itemLink [ href "#" ] [ text "Item 2" ]
+                [ Navbar.itemLink [ href "/users" ] [ text "Users" ]
+                , Navbar.itemLink [ href "/clients" ] [ text "Clients" ]
                 ]
             |> Navbar.view model.navbarState
+        , text (Url.toString model.url)
         ]
     }
 
